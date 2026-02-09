@@ -18,7 +18,7 @@ jobs:
  
       - name: Deploy to server
         run: |
-          ssh root@${{ secrets.HOST }} bash -s << 'EOF'
+          ssh -tt root@${{ secrets.HOST }} bash -s << 'EOF'
           set -euxo pipefail
  
           echo "WHOAMI:"
