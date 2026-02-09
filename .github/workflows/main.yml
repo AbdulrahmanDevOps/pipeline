@@ -50,3 +50,5 @@ jobs:
           docker rm pipeline || true
           docker run -d --name pipeline -p 1111:80 pipeline
           EOF
+          echo "deployment completed successful"
+          exit 0
