@@ -1,11 +1,13 @@
 name: Deploy Pipeline
+ 
 on:
   push:
     branches: [ main ]
-
+ 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+ 
     steps:
       - name: Setup SSH
         run: |
@@ -13,38 +15,38 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-      
+ 
       - name: Deploy to server
         run: |
-          ssh -o StrictHostKeyChecking=no root@${{ secrets.HOST }} bash << 'EOF'
+          ssh root@${{ secrets.HOST }} bash -s << 'EOF'
           set -euxo pipefail
-          
-          echo "WHOAMI:" 
+ 
+          echo "WHOAMI:"
           whoami
-          
-          echo "PWD:" 
+ 
+          echo "PWD:"
           pwd
-          
-          echo "LIST /mnt/dev:" 
+ 
+          echo "LIST /mnt/dev:"
           ls -la /mnt/dev
-          
+ 
           echo "CREATE DIR"
           mkdir -p /mnt/dev/pipeline
+ 
           cd /mnt/dev/pipeline
-          
+ 
           echo "CLONE REPO"
           rm -rf pipeline
           git clone https://github.com/AbdulrahmanDevOps/pipeline.git
+ 
           cd pipeline
           ls -la
-          
+ 
           echo "DOCKER BUILD"
           docker build -t pipeline .
-          
+ 
           echo "DOCKER RUN"
           docker stop pipeline || true
           docker rm pipeline || true
           docker run -d --name pipeline -p 1111:80 pipeline
-          
-          echo "Deployment completed successfully"
           EOF
