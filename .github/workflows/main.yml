@@ -2,56 +2,37 @@ name: Deploy Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script_stop: true
-          debug: true
-          script: |
-            set -euxo pipefail
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-            whoami
-            pwd
+      - name: Deploy to server
+        run: |
+          ssh root@${{ secrets.HOST }} << 'EOF'
+          set -euxo pipefail
 
-            echo "Ensure base directory exists"
-            mkdir -p /mnt/dev/pipeline
-            ls -la /mnt/dev
+          whoami
+          ls -la /mnt/dev
 
-            cd /mnt/dev/pipeline
+          mkdir -p /mnt/dev/pipeline
+          cd /mnt/dev/pipeline
 
-            echo "Remove old app folder"
-            rm -rf pipeline
+          rm -rf pipeline
+          git clone https://github.com/AbdulrahmanDevOps/pipeline.git
 
-            echo "Clone repository"
-            git clone https://github.com/AbdulrahmanDevOps/pipeline.git
-
-            cd pipeline
-            ls -la
-
-            echo "Docker version"
-            docker --version
-
-            echo "Stop old container"
-            docker stop pipeline || true
-            docker rm pipeline || true
-
-            echo "Build image"
-            docker build -t pipeline .
-
-            echo "Run container"
-            docker run -d \
-              --name pipeline \
-              -p 1111:80 \
-              pipeline
+          cd pipeline
+          docker build -t pipeline .
+          docker stop pipeline || true
+          docker rm pipeline || true
+          docker run -d --name pipeline -p 1111:80 pipeline
+          EOF
