@@ -1,0 +1,48 @@
+name: Deploy Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            # Create directory
+            mkdir -p /mnt/dev/pipeline
+            cd /mnt/dev/pipeline
+
+            # Clean old repo if exists
+            rm -rf pipeline
+
+            # Clone repo
+            git clone https://github.com/AbdulrahmanDevOps/pipeline
+            cd pipeline
+
+            # Stop & remove old container if exists
+            docker stop pipeline || true
+            docker rm pipeline || true
+
+            # Build Docker image
+            docker build -t pipeline .
+
+            # Run container
+            docker run -d \
+              --name pipeline \
+              -p 1112:80 \
+              pipeline
