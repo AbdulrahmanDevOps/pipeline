@@ -21,20 +21,31 @@ jobs:
       - name: Deploy to server
         run: |
           ssh \
+            -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=5 \
             root@${{ secrets.HOST }} \
-            "set -euxo pipefail && \
-             whoami && \
-             mkdir -p /mnt/dev/pipeline && \
-             cd /mnt/dev/pipeline && \
-             rm -rf pipeline && \
-             git clone https://github.com/AbdulrahmanDevOps/pipeline.git && \
-             cd pipeline && \
-             docker build -t pipeline . && \
-             docker stop pipeline || true && \
-             docker rm pipeline || true && \
-             docker run -d --name pipeline -p 1111:80 pipeline"
+            "
+            set -e
 
-      - name: Deployment completed
+            echo 'Connected as:' \$(whoami)
+
+            mkdir -p /mnt/dev/pipeline
+            cd /mnt/dev/pipeline
+
+            rm -rf pipeline
+            git clone https://github.com/AbdulrahmanDevOps/pipeline.git
+            cd pipeline
+
+            docker build -t pipeline .
+            docker stop pipeline || true
+            docker rm pipeline || true
+            docker run -d \
+              --restart unless-stopped \
+              --name pipeline \
+              -p 1111:80 \
+              pipeline
+            "
+
+      - name: Done
         run: echo "🚀 Deployment completed successfully"
