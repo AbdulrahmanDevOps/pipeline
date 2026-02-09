@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -20,29 +17,45 @@ jobs:
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          script_stop: true
           script: |
-            set -e
+            set -euxo pipefail
 
-            # Create directory
+            echo "Connected as:"
+            whoami
+            id
+
+            echo "Checking /mnt"
+            ls -ld /mnt || true
+
+            echo "Creating directories"
             mkdir -p /mnt/dev/pipeline
+
+            echo "Verifying directory"
+            ls -ld /mnt/dev /mnt/dev/pipeline
+
             cd /mnt/dev/pipeline
 
-            # Clean old repo if exists
+            echo "Cleaning old repo"
             rm -rf pipeline
 
-            # Clone repo
-            git clone https://github.com/AbdulrahmanDevOps/pipeline
+            echo "Cloning repo"
+            git clone https://github.com/YOUR_ORG/YOUR_PIPELINE_REPO.git pipeline
+
             cd pipeline
 
-            # Stop & remove old container if exists
+            echo "Docker info"
+            docker --version
+
+            echo "Stopping old container"
             docker stop pipeline || true
             docker rm pipeline || true
 
-            # Build Docker image
+            echo "Building image"
             docker build -t pipeline .
 
-            # Run container
+            echo "Running container"
             docker run -d \
               --name pipeline \
-              -p 1112:80 \
+              -p 1111:80 \
               pipeline
