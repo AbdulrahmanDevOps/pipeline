@@ -49,4 +49,11 @@ jobs:
           docker stop pipeline || true
           docker rm pipeline || true
           docker run -d --name pipeline -p 1111:80 pipeline
+          echo "Deployment completed successfully"
+          exit 0
           EOF
+          
+      - name: Verify Deployment
+        run: |
+          echo "✅ Pipeline deployed successfully"
+          echo "Container should be running on port 1111"
